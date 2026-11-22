@@ -1,6 +1,6 @@
 # 远程控制（Docker）
 
-桌面端「远程控制」页面用来操作跑在 NAS/服务器 Docker 里的小助手：查看调度器状态、
+桌面端「远程控制」页面用来操作跑在 Docker 里的小助手：查看调度器状态、
 手动触发一次完整运行、停止正在跑的任务、改常用配置开关。适合 7×24 挂机的场景——
 自动任务在容器里跑，你也可以随时在电脑上点一下。
 
@@ -37,7 +37,7 @@ services:
 ```
 
 3. 重建容器：`docker compose up -d --force-recreate`。
-4. 验证：`curl -H "X-Control-Token: 令牌" http://<NAS-IP>:8787/api/status`。
+4. 验证：`curl -H "X-Control-Token: 令牌" http://<Docker-主机-IP>:8787/api/status`。
 
 环境变量：
 

@@ -8128,7 +8128,6 @@ msgstr "未能在時限內從「列車補給」視窗返回主畫面。請在遊
 msgid "远程控制（Docker）"
 msgstr ""
 
-#: app/docker_interface.py:103
 msgid "控制 NAS 上运行的小助手：查看调度器状态、立即运行完整运行、停止当前任务、修改常用开关。需要容器开启控制接口并配置令牌。"
 msgstr ""
 
@@ -8321,4 +8320,8 @@ msgstr ""
 
 #: app/docker_interface.py:116
 msgid "地址，例如 192.0.2.10"
+msgstr ""
+
+#: app/docker_interface.py:103
+msgid "控制 Docker 里运行的小助手：查看调度器状态、立即运行完整运行、停止当前任务、修改常用开关。需要容器开启控制接口并配置令牌。"
 msgstr ""

@@ -1,5 +1,5 @@
 # coding:utf-8
-"""远程控制页面：在桌面端查看并操作 Docker（NAS 容器）里的小助手。
+"""远程控制页面：在桌面端查看并操作 Docker 容器里的小助手。
 
 页面只做三件事：
 - 连接配置（地址 / 端口 / 令牌），保存在本机 QSettings，不写进 config.yaml；
@@ -100,7 +100,7 @@ class DockerInterface(ScrollArea):
     def _build_header(self):
         title = TitleLabel(tr("远程控制（Docker）"), self.view)
         hint = CaptionLabel(
-            tr("控制 NAS 上运行的小助手：查看调度器状态、立即运行完整运行、停止当前任务、修改常用开关。"
+            tr("控制 Docker 里运行的小助手：查看调度器状态、立即运行完整运行、停止当前任务、修改常用开关。"
                "需要容器开启控制接口并配置令牌。"),
             self.view,
         )
