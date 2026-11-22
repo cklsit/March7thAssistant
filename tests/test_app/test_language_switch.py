@@ -365,7 +365,7 @@ def test_failed_state_restore_does_not_remove_old_settings(window, qtbot, monkey
     qtbot.waitUntil(lambda: warning.called, timeout=15000)
     assert window.settingInterface is old
     assert window.stackedWidget.currentWidget() is old
-    assert window.stackedWidget.count() == 7
+    assert window.stackedWidget.count() == 8
     assert localization.get_current_language() == 'zh_CN'
     assert QApplication.overrideCursor() is None
 
@@ -408,7 +408,7 @@ def test_failed_combo_change_restores_saved_preference_and_retries(
         QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert window.settingInterface is old
         assert window.stackedWidget.currentWidget() is old
-        assert window.stackedWidget.count() == 7
+        assert window.stackedWidget.count() == 8
         assert len(window.findChildren(module.SettingInterface)) == 1
         assert localization.get_current_language() == 'zh_CN'
         assert cfg.ui_language_now == 'zh_CN'
@@ -480,7 +480,7 @@ def test_config_reload_failure_disposes_unused_settings(window, monkeypatch, fai
         QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         assert window.settingInterface is old
         assert window.stackedWidget.currentWidget() is old
-        assert window.stackedWidget.count() == 7
+        assert window.stackedWidget.count() == 8
         assert len(window.findChildren(module.SettingInterface)) == 1
     assert warning.call_count == 2
 

@@ -18,6 +18,7 @@ from .help_interface import HelpInterface
 from .warp_interface import WarpInterface
 from .tools_interface import ToolsInterface
 from .workflow_interface import WorkflowInterface
+from .docker_interface import DockerInterface
 from .setting_interface import SettingInterface
 from .log_interface import LogInterface
 from .common.signal_bus import signalBus
@@ -489,6 +490,7 @@ class MainWindow(MSFluentWindow):
         self.warpInterface = WarpInterface(self)
         self.toolsInterface = ToolsInterface(self)
         self.workflowInterface = WorkflowInterface(self)
+        self.dockerInterface = DockerInterface(self)
         self.logInterface = LogInterface(self)
         self.settingInterface = SettingInterface(self)
 
@@ -511,6 +513,7 @@ class MainWindow(MSFluentWindow):
         self.addSubInterface(self.warpInterface, FIF.SHARE, tr('抽卡记录'))
         self.addSubInterface(self.toolsInterface, FIF.DEVELOPER_TOOLS, tr('工具箱'))
         self.addSubInterface(self.workflowInterface, FIF.CODE, tr('流程编排'))
+        self.addSubInterface(self.dockerInterface, FIF.CLOUD, tr('远程控制'))
 
         self.navigationInterface.addWidget(
             'startGameButton',
