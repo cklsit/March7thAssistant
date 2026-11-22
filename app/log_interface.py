@@ -3,7 +3,7 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
 
-from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, Signal, QTimer, QDateTime, QEvent, QMetaObject, Slot
+from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, Signal, QTimer, QDateTime, QEvent, QMetaObject, Slot, QThread
 from PySide6.QtGui import QFont, QTextCursor
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                                QSizePolicy, QFrame, QLabel)
@@ -21,6 +21,7 @@ import uuid
 from .common.style_sheet import StyleSheet
 from .common.accent import accent_html
 from .common.icon import UiIcon
+from .common import docker_mode
 from .common.schedule import (task_trigger_mode, scheduled_task_slot,
                               scheduled_task_payload, find_scheduled_task, scheduled_task_chain,
                               split_task_arguments, milliseconds_to_next_minute,
@@ -327,6 +328,23 @@ class _TaskSequence:
     finished: bool = False
 
 
+class _DockerRequestThread(QThread):
+    """把一次 Docker 控制接口请求放到线程里跑。"""
+
+    succeeded = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, task, parent=None):
+        super().__init__(parent)
+        self._task = task
+
+    def run(self):
+        try:
+            self.succeeded.emit(self._task())
+        except Exception as error:  # noqa: BLE001 - 远程失败一律回报到界面
+            self.failed.emit(str(error))
+
+
 class LogInterface(ScrollArea):
     """日志界面"""
 
@@ -362,6 +380,12 @@ class LogInterface(ScrollArea):
         self._external_task_name = None
         self._external_task_stop_callback = None
         self._external_task_user_initiated_stop = False
+        # Docker 模式：远程任务状态
+        self._docker_running = False
+        self._docker_task = None
+        self._docker_log_len = 0
+        self._dockerPolledOnce = False
+        self._docker_thread = None
         # 清理日志中的 ANSI 控制序列，兼容标准 ESC 序列与缺失 ESC 的残留序列（如 [36m）
         self._ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         self._orphan_ansi_re = re.compile(r'(?<!\x1b)\[(?:\d{1,3}(?:;\d{1,3})*)?[A-Za-z]')
@@ -1290,6 +1314,9 @@ class LogInterface(ScrollArea):
         if getattr(self, "_desktop_twin_hosting", False):
             self.appendLog("当前由分身内的小助手运行任务\n")
             return
+        if docker_mode.active():
+            self._startDockerTask(command_or_task, _sequence)
+            return
         if reason := task_launch_block_reason(command_or_task, cfg):
             self._reportBlockedTaskLaunch(reason)
             return
@@ -1458,6 +1485,118 @@ class LogInterface(ScrollArea):
         self.taskFinished.emit(effective_exit_code)
         self._finishTaskSequence(sequence)
 
+    # ── Docker 模式：任务交给远程运行 ─────────────────────────────
+    def _dockerTaskId(self, command_or_task):
+        """把任务入口参数规整成可远程运行的任务 id；不支持时返回 None。"""
+        if isinstance(command_or_task, dict):
+            if str(command_or_task.get("program", "")).strip().lower() != "self":
+                self.appendLog("Docker 模式不支持外部程序或流程编排，请在 Docker 上直接配置\n")
+                return None
+            task_id = str(command_or_task.get("args", "") or "")
+        else:
+            task_id = str(command_or_task or "")
+        if task_id not in docker_mode.REMOTE_TASKS:
+            self.appendLog(f"Docker 模式不支持任务「{task_id}」\n")
+            return None
+        return task_id
+
+    def _startDockerTask(self, command_or_task, sequence=None):
+        task_id = self._dockerTaskId(command_or_task)
+        if task_id is None:
+            return
+        if self._docker_running:
+            self.appendLog("Docker 上已有任务在运行，请先停止\n")
+            return
+        name = docker_mode.REMOTE_TASK_NAMES.get(task_id, task_id)
+        self._task_sequence = sequence if sequence is not None else _TaskSequence()
+        self.taskStarted.emit()
+        self._cancelPendingPostAction()
+        self._clearTaskTimeout()
+        self._stopped_abnormally = False
+        self._user_initiated_stop = False
+        self._docker_task = task_id
+        self._docker_running = True
+        self.current_task = task_id
+        self.clearLog()
+        self.appendLog("========== 开始任务: {}（Docker 运行） ==========\n".format(name))
+        self._setRunningStatus(name)
+        self.stopButton.setEnabled(True)
+        self._syncPauseUi()
+        self._dockerThread(
+            lambda: docker_mode.client().run_task(task_id),
+            lambda _result: self._pollDockerTask(),
+            lambda message: self._finishDockerTask(1, message),
+        )
+
+    def _pollDockerTask(self):
+        if not self._docker_running:
+            return
+        self._dockerThread(
+            lambda: docker_mode.client().status(),
+            self._onDockerStatus,
+            lambda message: self.appendLog("读取远程状态失败：{}，稍后重试\n".format(message)),
+        )
+
+    def _onDockerStatus(self, payload):
+        if not self._docker_running:
+            return
+        active = payload.get("active_run")
+        if active:
+            self._dockerPolledOnce = True
+            self._dockerThread(
+                lambda: docker_mode.client().run_log(8000),
+                self._onDockerLog,
+                lambda message: None,
+            )
+            QTimer.singleShot(2000, self._pollDockerTask)
+            return
+        if not self._dockerPolledOnce:
+            # 刚提交时远程可能还没拿到运行锁，宽限一轮再判断
+            self._dockerPolledOnce = True
+            QTimer.singleShot(1500, self._pollDockerTask)
+            return
+        last = payload.get("last_run") or {}
+        exit_code = last.get("exit_code")
+        self._finishDockerTask(int(exit_code) if isinstance(exit_code, int) else 1)
+
+    def _onDockerLog(self, payload):
+        text = payload.get("tail") or ""
+        if not text:
+            return
+        new = text[self._docker_log_len:]
+        if not new:
+            return
+        self._docker_log_len = len(text)
+        for line in new.splitlines():
+            if line.strip():
+                self.appendLog(line + "\n")
+
+    def _finishDockerTask(self, exit_code, message=None):
+        if not self._docker_running:
+            return
+        self._docker_running = False
+        self._docker_task = None
+        self._docker_log_len = 0
+        self._dockerPolledOnce = False
+        self.current_task = None
+        if message:
+            self.appendLog(message + "\n")
+        self._updateFinishedStatus(exit_code)
+        sequence = self._task_sequence
+        sequence.succeeded = exit_code == 0
+        self.stopButton.setEnabled(False)
+        self.taskFinished.emit(exit_code)
+        # 远程任务会更新配置里的时间戳，结束后把镜像配置拉回来
+        docker_mode.pull_config()
+
+    def _dockerThread(self, task, on_success, on_failure):
+        thread = _DockerRequestThread(task, self)
+        thread.succeeded.connect(on_success)
+        thread.failed.connect(on_failure)
+        thread.finished.connect(thread.deleteLater)
+        self._docker_thread = thread
+        thread.start()
+
     def _startTask(self, task, timeout=0):
         self.current_task = task
         command = str(task)
@@ -1550,6 +1689,14 @@ class LogInterface(ScrollArea):
 
     def stopTask(self, user_initiated=True):
         """停止任务"""
+        if self._docker_running:
+            self.appendLog("正在请求 Docker 停止任务...\n")
+            self._dockerThread(
+                lambda: docker_mode.client().stop_run(),
+                lambda _result: self.appendLog("已向 Docker 下发停止指令\n"),
+                lambda message: self.appendLog("停止失败：{}\n".format(message)),
+            )
+            return
         if (getattr(self, '_cooperative_stop_process', None) is getattr(self, 'process', None)
                 and getattr(self, 'process', None) is not None):
             return
@@ -2559,6 +2706,8 @@ class LogInterface(ScrollArea):
 
     def isTaskRunning(self):
         """检查任务是否正在运行"""
+        if getattr(self, '_docker_running', False):
+            return True
         return (self.process and self.process.state() == QProcess.Running) or self._external_task_active
 
     def cleanup(self):

@@ -221,3 +221,5 @@ CLAUDE.md
 
 # Telemetry server
 telemetry_server/
+# Docker 模式生成的配置镜像
+docker_profile/

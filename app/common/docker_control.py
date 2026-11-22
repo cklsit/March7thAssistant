@@ -63,8 +63,20 @@ class DockerControlClient:
     def run_main(self):
         return self._request("POST", "/api/run", payload={})
 
+    def run_task(self, task_id="main"):
+        return self._request("POST", "/api/run", payload={"task": task_id})
+
     def stop_run(self):
         return self._request("POST", "/api/stop", payload={})
+
+    def config_file(self):
+        return self._request("GET", "/api/config_file")
+
+    def replace_config_file(self, text):
+        return self._request("POST", "/api/config_file", payload={"text": text})
+
+    def run_log(self, tail=8000):
+        return self._request("GET", f"/api/run_log?tail={int(tail)}")
 
 
 def normalize_host(text):

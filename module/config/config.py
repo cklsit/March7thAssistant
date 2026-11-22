@@ -416,6 +416,16 @@ class Config(metaclass=SingletonMeta):
             # 更新器/清理器等旁观进程不写配置：多进程并发写是配置损坏的根源之一
             _diag("info", f"save_config 跳过（当前进程为只读角色，不写配置文件）: {os.path.abspath(self.config_path)}")
             return
+        self._write_config_file()
+        hook = getattr(self, "post_save_hook", None)
+        if hook is not None:
+            # Docker 模式用它把改动整份推回远程；失败只记日志，不影响本地保存
+            try:
+                hook()
+            except Exception:
+                _diag("warning", f"post_save_hook 执行失败:\n{traceback.format_exc()}")
+
+    def _write_config_file(self):
         config_dir = os.path.dirname(os.path.abspath(self.config_path))
         self._warn_stale_tmp_files(config_dir)
         # 临时文件名唯一，避免多进程同时保存时互相截断

@@ -12,6 +12,7 @@ from .card.comboboxsettingcard2 import ComboBoxSettingCard2, ComboBoxSettingCard
 from .card.switchsettingcard1 import SwitchSettingCard1, SwitchSettingCardWithAction, TimestampSwitchSettingCard, SwitchSettingCardTeam, SwitchSettingCardGardenofplenty, SwitchSettingCardEchoofwar, SwitchSettingCardHotkey, SwitchSettingCardCloudGameStatus
 from .card.autostart_setting_card import AutostartSettingCard
 from .card.uac_free_setting_card import UacFreeSettingCard
+from .card.docker_control_card import DockerControlCard
 from .card.game_path_setting_card import GamePathSettingCard
 from .card.adb_setting_cards import AdbBackendSettingCard, AdbDeviceCard, AdbEnvironmentCard, AdbStatusCard, AdbAdvancedCard
 from .card.rangesettingcard1 import RangeSettingCard1
@@ -2591,6 +2592,11 @@ class SettingInterface(ScrollArea):
             tr("配置秘技、地图、跃迁、停止任务等按键设置")
         )
 
+        self.dockerControlCard = DockerControlCard(
+            FIF.CLOUD,
+            tr('Docker 控制'),
+        )
+
         self.AboutGroup = SettingCardGroup(tr('关于'), self.scrollWidget)
         self.githubCard = PrimaryPushSettingCard(
             tr('项目主页'),
@@ -2918,6 +2924,7 @@ class SettingInterface(ScrollArea):
             self.MiscGroup.addSettingCard(self.autostartCard)
             self.MiscGroup.addSettingCard(self.uacFreeCard)
             self.MiscGroup.addSettingCard(self.debugModeEnableCard)
+        self.MiscGroup.addSettingCard(self.dockerControlCard)
         self.MiscGroup.addSettingCard(self.hotkeyCard)
 
         self.AboutGroup.addSettingCard(self.githubCard)
@@ -2966,6 +2973,7 @@ class SettingInterface(ScrollArea):
             )
         self.addSubInterface(self.AboutGroup, 'AboutInterface', tr('关于'))
 
+        self._hide_local_only_cards_in_docker_mode()
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
         self.pivot.setCurrentItem(self.stackedWidget.currentWidget().objectName())
         self.stackedWidget.setFixedHeight(self.stackedWidget.currentWidget().sizeHint().height())
@@ -2979,6 +2987,19 @@ class SettingInterface(ScrollArea):
         self.pivot.installEventFilter(self._pivot_scroll_filter)
         for child in self.pivot.findChildren(QWidget):
             child.installEventFilter(self._pivot_scroll_filter)
+
+    def _hide_local_only_cards_in_docker_mode(self):
+        """Docker 模式下隐藏只对本机生效的设置，避免误改本机系统。"""
+        from .common import docker_mode
+
+        if not docker_mode.active():
+            return
+        for name in ("uacFreeCard", "autostartCard", "checkUpdateCard",
+                     "updateFullEnableCard", "updateSourceCard", "mirrorchyanCdkCard",
+                     "updateDownloadProxyCard", "githubTokenCard", "debugModeEnableCard"):
+            card = getattr(self, name, None)
+            if card is not None:
+                card.hide()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

@@ -5,7 +5,8 @@ from module.config.config import Config
 
 VERSION_PATH = "./assets/config/version.txt"
 EXAMPLE_PATH = "./assets/config/config.example.yaml"
-CONFIG_PATH = "./config.yaml"
+# Docker 模式用独立镜像文件（app/common/docker_mode.py 在导入本模块前设置该变量）
+CONFIG_PATH = os.environ.get("MARCH7TH_CONFIG_PATH") or "./config.yaml"
 
 # 环境变量优先级说明：
 # 以下配置项支持通过环境变量覆盖（在 Config 类的 get_value/__getattr__ 中处理）：

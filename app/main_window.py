@@ -18,10 +18,10 @@ from .help_interface import HelpInterface
 from .warp_interface import WarpInterface
 from .tools_interface import ToolsInterface
 from .workflow_interface import WorkflowInterface
-from .docker_interface import DockerInterface
 from .setting_interface import SettingInterface
 from .log_interface import LogInterface
 from .common.signal_bus import signalBus
+from .common import docker_mode
 from .common.evernight import EvernightEasterEgg
 from .common.evernight_artwork import evernight_artwork
 from .common.theme_assets import application_icon_path
@@ -196,6 +196,31 @@ class EasterEggClickFilter(QObject):
         return super().eventFilter(obj, event)
 
 
+class _DockerSyncThread(QThread):
+    """后台拉取远程配置，避免阻塞界面。"""
+
+    done = Signal(bool, str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def run(self):
+        try:
+            with open(docker_mode.mirror_config_path(), encoding="utf-8", newline="") as handle:
+                before = handle.read()
+        except OSError:
+            before = ""
+        ok = docker_mode.pull_config()
+        changed = False
+        if ok:
+            try:
+                with open(docker_mode.mirror_config_path(), encoding="utf-8", newline="") as handle:
+                    changed = handle.read() != before
+            except OSError:
+                changed = False
+        self.done.emit(changed, "" if ok else (docker_mode.last_error or ""))
+
+
 class MainWindow(MSFluentWindow):
     TASK_EXIT_DELAY_MS = 5000
 
@@ -205,6 +230,7 @@ class MainWindow(MSFluentWindow):
         self._desktop_twin_tray_action = None
         self._desktop_twin_notice = None
         self._desktop_twin_badge = None
+        self._docker_badge = None
         self._backend_connection = display_connection(cfg)
         self._pending_ui_language = None
         self._navigation_animation_running = False
@@ -230,12 +256,16 @@ class MainWindow(MSFluentWindow):
         self._evernight = EvernightEasterEgg()
         self._evernight_active = False
         self._evey_animation = None
+        self._docker_sync_timer = None
+        self._docker_sync_thread = None
+        self._docker_sync_error = None
 
         self.initWindow()
 
         self.initInterface()
         self.initNavigation()
         self.initSystemTray()
+        self._startDockerConfigSync()
         qconfig.themeChanged.connect(self._on_theme_changed)
 
         if self.start_minimized_to_tray:
@@ -300,7 +330,7 @@ class MainWindow(MSFluentWindow):
         easter_egg_click = EasterEggClickFilter(self.titleBar.iconLabel)
         easter_egg_click.clicked.connect(self._on_logo_clicked)
         set_application_icon(self, application_icon_path(), 'March7th Assistant')
-        self.setWindowTitle("March7th Assistant")
+        self.setWindowTitle(self._assistant_name())
         # 分离系统窗口标题与应用内标题栏文本
         self._refreshWindowTitleBar()
 
@@ -353,7 +383,9 @@ class MainWindow(MSFluentWindow):
         return f"{self._assistant_name()} {cfg.version}"
 
     def _assistant_name(self):
-        return 'Evernight Assistant' if self._evernight_active else 'March7th Assistant'
+        name = 'Evernight Assistant' if self._evernight_active else 'March7th Assistant'
+        state = docker_mode.active()
+        return f"{name} · Docker" if state else name
 
     def _refreshDesktopTwinBadge(self):
         """分身内的小助手在标题栏标出身份，透过分身画面也能和主桌面的小助手区分开。"""
@@ -371,6 +403,54 @@ class MainWindow(MSFluentWindow):
         self._desktop_twin_badge.setText(tr('桌面分身'))
         self._desktop_twin_badge.setToolTip(
             tr('这是运行在桌面分身中的小助手。分身内固定使用前台模式，不调整画质和分辨率，也不执行任务完成后的关机等操作'))
+
+    # ── Docker 模式：定期把远程配置拉回镜像 ─────────────────────
+    def _startDockerConfigSync(self):
+        if not docker_mode.active():
+            return
+        if self._docker_sync_timer is None:
+            self._docker_sync_timer = QTimer(self)
+            self._docker_sync_timer.setInterval(60000)
+            self._docker_sync_timer.timeout.connect(self._syncDockerConfig)
+        self._docker_sync_timer.start()
+        self._syncDockerConfig()
+
+    def _syncDockerConfig(self):
+        if self._docker_sync_thread is not None and self._docker_sync_thread.isRunning():
+            return
+        thread = _DockerSyncThread(self)
+        thread.done.connect(self._onDockerConfigSynced)
+        thread.finished.connect(thread.deleteLater)
+        self._docker_sync_thread = thread
+        thread.start()
+
+    def _onDockerConfigSynced(self, changed, error):
+        self._docker_sync_thread = None
+        self._docker_sync_error = error
+        if changed:
+            # 镜像文件变了：交给已有的配置监听刷新各页面
+            self._config_reload_timer.start(500)
+        self._refreshDockerBadge()
+
+    def _refreshDockerBadge(self):
+        """Docker 模式在标题栏标出 Docker 与目标地址，避免和本地小助手混淆。"""
+        state = docker_mode.active()
+        if not state or not hasattr(getattr(self, 'titleBar', None), 'hBoxLayout'):
+            return
+        if self._docker_badge is None:
+            from .components.pill_label import PillLabel
+            badge = PillLabel(parent=self.titleBar)
+            badge.installEventFilter(ToolTipFilter(badge, 300, ToolTipPosition.BOTTOM))
+            layout = self.titleBar.hBoxLayout
+            index = layout.indexOf(self.titleBar.titleLabel) + 1
+            layout.insertWidget(index, badge, 0, Qt.AlignmentFlag.AlignVCenter)
+            layout.insertSpacing(index + 1, 8)
+            self._docker_badge = badge
+        text = docker_mode.sync_failed and tr('Docker（配置未同步）') or tr('Docker')
+        self._docker_badge.setText(text)
+        self._docker_badge.setToolTip(
+            tr('当前是 Docker 模式：界面只显示并操作 {host}:{port} 上的小助手，任务会交给 Docker 运行')
+            .format(host=state['host'], port=state['port']))
 
     def _ensureUpdateVersionBadge(self):
         if self.updateVersionBadge is not None:
@@ -396,8 +476,9 @@ class MainWindow(MSFluentWindow):
             self.titleBar.setTitle(self._baseTitleBarText())
 
         badge = self._ensureUpdateVersionBadge()
-        # 更新徽章先插入，分身徽章再插到标题后面，两者依次排列
+        # 更新徽章先插入，分身/Docker 徽章再插到标题后面，依次排列
         self._refreshDesktopTwinBadge()
+        self._refreshDockerBadge()
         if badge is None:
             return
 
@@ -490,7 +571,6 @@ class MainWindow(MSFluentWindow):
         self.warpInterface = WarpInterface(self)
         self.toolsInterface = ToolsInterface(self)
         self.workflowInterface = WorkflowInterface(self)
-        self.dockerInterface = DockerInterface(self)
         self.logInterface = LogInterface(self)
         self.settingInterface = SettingInterface(self)
 
@@ -511,15 +591,19 @@ class MainWindow(MSFluentWindow):
         self.addSubInterface(self.helpInterface, FIF.BOOK_SHELF, tr('帮助'))
         # self.addSubInterface(self.changelogInterface, FIF.UPDATE, '更新日志')
         self.addSubInterface(self.warpInterface, FIF.SHARE, tr('抽卡记录'))
-        self.addSubInterface(self.toolsInterface, FIF.DEVELOPER_TOOLS, tr('工具箱'))
+        if docker_mode.active():
+            # Docker 模式不提供本机工具箱入口，避免误操作用户电脑
+            pass
+        else:
+            self.addSubInterface(self.toolsInterface, FIF.DEVELOPER_TOOLS, tr('工具箱'))
         self.addSubInterface(self.workflowInterface, FIF.CODE, tr('流程编排'))
-        self.addSubInterface(self.dockerInterface, FIF.CLOUD, tr('远程控制'))
 
-        self.navigationInterface.addWidget(
-            'startGameButton',
-            NavigationBarPushButton(FIF.PLAY, tr('启动游戏'), isSelectable=False),
-            self.startGame,
-            NavigationItemPosition.BOTTOM)
+        if not docker_mode.active():
+            self.navigationInterface.addWidget(
+                'startGameButton',
+                NavigationBarPushButton(FIF.PLAY, tr('启动游戏'), isSelectable=False),
+                self.startGame,
+                NavigationItemPosition.BOTTOM)
 
         self.addSubInterface(self.logInterface, FIF.COMMAND_PROMPT, tr('日志'), position=NavigationItemPosition.BOTTOM)
 
@@ -1191,6 +1275,17 @@ class MainWindow(MSFluentWindow):
             )
 
     def startGame(self):
+        if docker_mode.active():
+            InfoBar.info(
+                title=tr('Docker 模式'),
+                content=tr('当前窗口只操作 Docker 上的小助手，任务由 Docker 运行；启动游戏请在本地小助手里操作'),
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self
+            )
+            return
         if self._desktop_twin_hosting:
             return
         connection = display_connection(cfg)

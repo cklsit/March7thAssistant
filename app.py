@@ -74,6 +74,22 @@ def parse_args():
         help="开机自启入口（由启动项自动传入，按配置决定是否打开图形界面及自动执行的任务）"
     )
     optional.add_argument("--desktop-twin-session", nargs=4, help=argparse.SUPPRESS)
+    optional.add_argument(
+        "--docker-host",
+        metavar="HOST",
+        help="以 Docker 模式启动，只显示并操作该 Docker 上的小助手"
+    )
+    optional.add_argument(
+        "--docker-port",
+        type=int,
+        default=8787,
+        help="Docker 控制接口端口（默认 8787）"
+    )
+    optional.add_argument(
+        "--docker-token",
+        default="",
+        help="Docker 控制接口访问令牌"
+    )
 
     args = parser.parse_args()
     if args.desktop_twin_session and (sys.platform != "win32" or args.task or args.autostart):
@@ -106,6 +122,29 @@ def parse_args():
 
 # 解析命令行参数（在请求管理员权限之前）
 args = parse_args()
+
+# Docker 模式：必须在导入 module.config 之前切换配置路径，并从远程拉一份配置镜像
+_docker_mode = None
+if getattr(args, "docker_host", None):
+    if args.desktop_twin_session or args.task:
+        args.docker_host = None
+    else:
+        from app.common import docker_mode as _docker_mode
+
+        _docker_mode.activate(args.docker_host, args.docker_port, args.docker_token)
+        _docker_mode.save_target(args.docker_host, args.docker_port, args.docker_token)
+        if not _docker_mode.pull_config():
+            # 拉不到就先用示例配置兜底，界面会提示"未同步远程配置"
+            import shutil
+
+            _docker_mode.ensure_profile()
+            try:
+                shutil.copyfile("./assets/config/config.example.yaml", _docker_mode.mirror_config_path())
+            except OSError:
+                pass
+        from module.config import cfg as _docker_cfg
+
+        _docker_cfg.post_save_hook = _docker_mode.on_local_config_saved
 
 _desktop_twin_context = None
 os.environ.pop("MARCH7TH_DESKTOP_TWIN", None)

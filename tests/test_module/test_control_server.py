@@ -65,8 +65,9 @@ class _State:
     def run_active(self):
         return self.active is not None
 
-    def trigger(self):
+    def trigger(self, task="main"):
         self.triggered += 1
+        self.task = task
         return True
 
     def stop(self):
@@ -138,13 +139,26 @@ def test_status_payload(server):
 def test_run_triggers_once_and_respects_active_run(server):
     status, payload = _call(server, "/api/run", method="POST", payload={})
     assert status == 200 and payload["accepted"] is True
+    assert payload["task"] == "main"
     assert server._state.triggered == 1
-    assert server.take_trigger() is True
-    assert server.take_trigger() is False
+    assert server.take_trigger() == "main"
+    assert server.take_trigger() is None
 
     server._state.active = "20261122-040000-abcd"
     status, payload = _call(server, "/api/run", method="POST", payload={})
     assert status == 409
+
+
+def test_run_carries_task_id(server):
+    status, payload = _call(server, "/api/run", method="POST", payload={"task": "daily"})
+    assert status == 200 and payload["task"] == "daily"
+    assert server.take_trigger() == "daily"
+
+
+def test_run_rejects_unknown_task(server):
+    status, payload = _call(server, "/api/run", method="POST", payload={"task": "app_update"})
+    assert status == 400
+    assert server.take_trigger() is None
 
 
 def test_stop_writes_only_when_running(server):
@@ -216,3 +230,41 @@ def test_threaded_server_serves_multiple_requests(server):
     for thread in threads:
         thread.join()
     assert results == [200, 200, 200, 200]
+
+
+def test_config_file_round_trip(server, config_path):
+    status, payload = _call(server, "/api/config_file")
+    assert status == 200
+    assert "currencywars_enable" in payload["text"]
+
+    new_text = payload["text"].replace("power_enable: true", "power_enable: false")
+    status, payload = _call(server, "/api/config_file", method="POST", payload={"text": new_text})
+    assert status == 200
+    assert "power_enable: false" in config_path.read_text(encoding="utf-8")
+
+
+def test_config_file_rejects_invalid_yaml(server, config_path):
+    before = config_path.read_text(encoding="utf-8")
+    status, payload = _call(server, "/api/config_file", method="POST",
+                            payload={"text": "a: [1, 2\nb: *missing\n"})
+    assert status == 400
+    assert config_path.read_text(encoding="utf-8") == before
+
+
+def test_config_file_refused_while_running(server):
+    server._state.active = "20261122-040000-abcd"
+    status, payload = _call(server, "/api/config_file", method="POST", payload={"text": "a: 1\n"})
+    assert status == 409
+
+
+def test_run_log_tail(server):
+    from tools.docker_control.control_server import RUN_LOG_TAIL
+    log_path = server.config.path + ".runlog"
+    with open(log_path, "w", encoding="utf-8") as handle:
+        handle.write("line-0\n" + "x" * 100)
+    server.run_log_provider = lambda: log_path
+    status, payload = _call(server, "/api/run_log?tail=20")
+    assert status == 200
+    assert payload["tail"].endswith("x")
+    assert len(payload["tail"]) <= 20
+    assert isinstance(RUN_LOG_TAIL, int)
