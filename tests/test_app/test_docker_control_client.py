@@ -61,9 +61,19 @@ def test_non_json_response():
     with pytest.raises(DockerControlError, match="JSON"):
         client.status()
 
-    session = _Session(requests.RequestException("boom"))
+    session = _Session(requests.ConnectionError("boom"))
     client = DockerControlClient("host", 8787, "tok", session=session)
-    with pytest.raises(DockerControlError, match="连接 host:8787 失败"):
+    with pytest.raises(DockerControlError, match="无法连接 host:8787"):
+        client.status()
+
+    session = _Session(requests.Timeout("slow"))
+    client = DockerControlClient("host", 8787, "tok", session=session)
+    with pytest.raises(DockerControlError, match="超时"):
+        client.status()
+
+    session = _Session(requests.RequestException("weird"))
+    client = DockerControlClient("host", 8787, "tok", session=session)
+    with pytest.raises(DockerControlError, match="请检查地址、端口与令牌"):
         client.status()
 
 

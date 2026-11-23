@@ -39,7 +39,7 @@ class DockerControlClient:
                 timeout=self.timeout,
             )
         except requests.RequestException as error:
-            raise DockerControlError(f"连接 {self.host}:{self.port} 失败：{error}") from error
+            raise DockerControlError(self._describe_connection_error(error)) from error
 
         try:
             data = response.json()
@@ -50,6 +50,16 @@ class DockerControlClient:
         if response.status_code >= 400 or data.get("ok") is False:
             raise DockerControlError(str(data.get("error") or f"HTTP {response.status_code}"))
         return data
+
+    def _describe_connection_error(self, error):
+        """把底层网络异常翻成可读提示：界面里不展示 requests 的内部细节。"""
+        _ = error
+        target = f"{self.host}:{self.port}"
+        if isinstance(error, requests.Timeout):
+            return f"连接 {target} 超时，请确认地址可达且端口正确"
+        if isinstance(error, requests.ConnectionError):
+            return f"无法连接 {target}，请确认 Docker 小助手已开启控制接口"
+        return f"连接 {target} 失败，请检查地址、端口与令牌"
 
     def status(self):
         return self._request("GET", "/api/status")

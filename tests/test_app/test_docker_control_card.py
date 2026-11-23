@@ -121,3 +121,70 @@ def test_docker_task_id_filtering(entry, expected):
     assert LogInterface._dockerTaskId(stub, entry) == expected
     if expected is None:
         assert stub.logs
+
+
+class _MessageBoxProbe:
+    """用假客户端验证：探活失败时 accept() 不关闭对话框。"""
+
+
+def test_accept_blocks_on_unreachable_host(qtbot, local_mode, monkeypatch):
+    from PySide6.QtWidgets import QWidget
+
+    host = QWidget(); host.resize(900, 700); qtbot.addWidget(host)
+    monkeypatch.setattr(module, "DockerControlClient",
+                        lambda *a, **k: FakeClient(error=DockerControlError("连接失败")))
+    dialog = module.DockerConnectDialog(host)
+    qtbot.addWidget(dialog)
+    dialog.hostEdit.setText("192.0.2.99")
+    dialog.tokenEdit.setText("tok")
+    dialog.show()
+
+    dialog.accept()
+    qtbot.wait(50)
+    assert dialog._accepted is False, "探活失败时不得确认关闭对话框"
+    assert dialog.errorLabel.text(), "探活失败必须就地显示错误原因"
+    assert "连接失败" in dialog.errorLabel.text()
+    dialog.close()
+
+
+def test_accept_passes_when_reachable(qtbot, local_mode, monkeypatch):
+    from PySide6.QtWidgets import QWidget
+
+    host = QWidget(); host.resize(900, 700); qtbot.addWidget(host)
+    client = FakeClient()
+    monkeypatch.setattr(module, "DockerControlClient", lambda *a, **k: client)
+    dialog = module.DockerConnectDialog(host)
+    qtbot.addWidget(dialog)
+    dialog.hostEdit.setText("192.0.2.10")
+    dialog.tokenEdit.setText("tok")
+    dialog.show()
+
+    dialog.accept()
+    qtbot.wait(50)
+    assert dialog._accepted is True
+    assert "status" in client.calls
+
+
+def test_card_does_not_switch_when_probe_fails(qtbot, local_mode, monkeypatch):
+    launched = []
+    monkeypatch.setattr(module, "DockerControlClient",
+                        lambda *a, **k: FakeClient(error=DockerControlError("地址不可达")))
+    monkeypatch.setattr(module, "_launch_new_window", lambda *a, **k: launched.append(a))
+    monkeypatch.setattr(module.QApplication, "quit", lambda *a, **k: launched.append("quit"))
+
+    card = DockerControlCard(FluentIcon.CLOUD, "Docker 控制")
+    qtbot.addWidget(card)
+
+    class _Dialog:
+        def __init__(self, *a, **k):
+            pass
+
+        def exec(self):
+            return True
+
+        def values(self):
+            return ("192.0.2.99", 8787, "tok")
+
+    monkeypatch.setattr(module, "DockerConnectDialog", _Dialog)
+    card._on_connect_clicked()
+    assert launched == [], "探活失败不得新开窗口或退出本地界面"

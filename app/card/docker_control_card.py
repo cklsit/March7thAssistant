@@ -13,7 +13,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QPushButton
 
 from qfluentwidgets import (
-    BodyLabel, InfoBar, InfoBarPosition, LineEdit, MessageBox, PasswordLineEdit, SettingCard,
+    BodyLabel, CaptionLabel, InfoBar, InfoBarPosition, LineEdit, MessageBox,
+    PasswordLineEdit, SettingCard,
 )
 
 from app.common import docker_mode
@@ -94,19 +95,40 @@ class DockerConnectDialog(MessageBox):
         row.addWidget(self.tokenEdit, 1)
         self.textLayout.addLayout(row)
         self.textLayout.addWidget(BodyLabel(tr("地址与令牌需要与 Docker 上的控制接口一致"), self))
+        self._accepted = False
+        self.errorLabel = CaptionLabel("", self)
+        self.errorLabel.setStyleSheet("color: #e74c3c;")
+        self.errorLabel.setWordWrap(True)
+        self.errorLabel.hide()
+        self.textLayout.addWidget(self.errorLabel)
 
     def values(self):
         return parse_target(self.hostEdit.text(), self.portEdit.text(), self.tokenEdit.text())
 
     def validate(self):
+        """探活不通过就不放行：确认按钮被拦截，窗口保持打开并就地提示。"""
         host, port, token = self.values()
         error = check_target(host, port, token, getattr(self, "client_factory", None))
         if error is None:
+            self._show_error("")
             return True
-        kind = InfoBar.warning if error in (tr("请填写地址"), tr("请填写访问令牌")) else InfoBar.error
-        kind(tr("连接失败") if kind is InfoBar.error else tr("请补全连接信息"),
-             error, parent=self, position=InfoBarPosition.TOP, duration=4000)
+        self._show_error(error)
         return False
+
+    def _show_error(self, message):
+        self.errorLabel.setText(message)
+        self.errorLabel.setVisible(bool(message))
+        if message:
+            InfoBar.error(tr("连接失败"), message, parent=self,
+                          position=InfoBarPosition.TOP, duration=4000)
+
+    def accept(self):
+        # 覆盖确认动作：校验失败时不关闭对话框，留在本地界面
+        if not self.validate():
+            self._accepted = False
+            return
+        self._accepted = True
+        super().accept()
 
 
 class DockerControlCard(SettingCard):
@@ -141,6 +163,12 @@ class DockerControlCard(SettingCard):
         if not dialog.exec():
             return
         host, port, token = dialog.values()
+        # 双保险：即便对话框被绕过，探活失败也留在本地界面
+        error = check_target(host, port, token)
+        if error is not None:
+            InfoBar.error(tr("连接失败"), error, parent=self.window(),
+                          position=InfoBarPosition.TOP, duration=5000)
+            return
         docker_mode.save_target(host, port, token)
         _launch_new_window(host, port, token)
         QApplication.quit()

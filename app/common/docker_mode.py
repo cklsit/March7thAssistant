@@ -82,6 +82,21 @@ def active():
     return _target
 
 
+def client_for(host, port, token):
+    """不切换模式，只构造一台目标的客户端（用于连接前探活）。"""
+    return DockerControlClient((host or "").strip(), int(port or 8787), (token or "").strip())
+
+
+def deactivate():
+    """回退到本机模式：清掉镜像路径与运行期状态。"""
+    global _target, last_error, sync_failed
+    with _lock:
+        _target = None
+        last_error = None
+        sync_failed = False
+        os.environ.pop("MARCH7TH_CONFIG_PATH", None)
+
+
 def client():
     if _target is None:
         raise DockerControlError("当前不是 Docker 模式")

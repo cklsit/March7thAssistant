@@ -130,21 +130,27 @@ if getattr(args, "docker_host", None):
         args.docker_host = None
     else:
         from app.common import docker_mode as _docker_mode
+        from app.common.docker_control import DockerControlError
 
-        _docker_mode.activate(args.docker_host, args.docker_port, args.docker_token)
-        _docker_mode.save_target(args.docker_host, args.docker_port, args.docker_token)
-        if not _docker_mode.pull_config():
-            # 拉不到就先用示例配置兜底，界面会提示"未同步远程配置"
-            import shutil
+        # 先探活：连不上就不要进 Docker 模式，退回本机小助手并说明原因
+        try:
+            _docker_mode.client_for(args.docker_host, args.docker_port,
+                                    args.docker_token).status()
+        except DockerControlError as error:
+            print(f"连接 Docker 失败，改以本机模式启动：{error}", flush=True)
+            args.docker_host = None
+        else:
+            _docker_mode.activate(args.docker_host, args.docker_port, args.docker_token)
+            _docker_mode.save_target(args.docker_host, args.docker_port, args.docker_token)
+            if not _docker_mode.pull_config():
+                # 探活通过但取不到配置：同样不进入 Docker 模式，避免显示不完整的远程界面
+                print(f"读取 Docker 配置失败，改以本机模式启动：{_docker_mode.last_error}", flush=True)
+                _docker_mode.deactivate()
+                args.docker_host = None
+            else:
+                from module.config import cfg as _docker_cfg
 
-            _docker_mode.ensure_profile()
-            try:
-                shutil.copyfile("./assets/config/config.example.yaml", _docker_mode.mirror_config_path())
-            except OSError:
-                pass
-        from module.config import cfg as _docker_cfg
-
-        _docker_cfg.post_save_hook = _docker_mode.on_local_config_saved
+                _docker_cfg.post_save_hook = _docker_mode.on_local_config_saved
 
 _desktop_twin_context = None
 os.environ.pop("MARCH7TH_DESKTOP_TWIN", None)

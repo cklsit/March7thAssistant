@@ -995,11 +995,11 @@ msgstr "ベータ版"
 msgid "启动时检测更新"
 msgstr "起動時に更新確認"
 
-#: app/setting_interface.py:3230
+#: app/setting_interface.py:3244
 msgid "关闭更新检测前请确认"
 msgstr "更新確認を無効にする前にご確認ください"
 
-#: app/setting_interface.py:3231
+#: app/setting_interface.py:3245
 msgid ""
 "仍然建议保留“启动时检测更新”。\n"
 "\n"
@@ -1017,7 +1017,7 @@ msgstr ""
 "\n"
 "「急に使えなくなった」ように見える問題の多くは、実際にはバージョンが古いことが原因です。これらの影響を理解したうえで、更新確認を無効にしてください。"
 
-#: app/setting_interface.py:3234
+#: app/setting_interface.py:3248
 msgid "我已了解，继续关闭"
 msgstr "理解したうえで無効にする"
 
@@ -1539,11 +1539,11 @@ msgstr "レア度"
 msgid "卡池"
 msgstr "ガチャ"
 
-#: app/setting_interface.py:3581
+#: app/setting_interface.py:3595
 msgid "复制成功(＾∀＾●)"
 msgstr "コピーに成功しました (＾∀＾●)"
 
-#: app/setting_interface.py:3591
+#: app/setting_interface.py:3605
 msgid "复制失败(╥╯﹏╰╥)"
 msgstr "コピーに失敗しました (╥╯﹏╰╥)"
 
@@ -2104,14 +2104,14 @@ msgstr "Chrome"
 msgid "Edge"
 msgstr "Edge"
 
-#: app/setting_interface.py:3550
+#: app/setting_interface.py:3564
 msgid "选择游戏路径"
 msgstr "ゲームパスを選択"
 
 msgid "选择米哈游启动器路径"
 msgstr "HoYoPlay パスを選択"
 
-#: app/setting_interface.py:3610
+#: app/setting_interface.py:3624
 msgid "脚本或程序路径"
 msgstr "スクリプトまたはプログラムのパス"
 
@@ -3323,7 +3323,7 @@ msgstr "ナビゲーター / 名匠セット"
 msgid "开启后可能提升运行速度，若出现错误、异常或不稳定，请关闭此选项"
 msgstr "有効にすると動作が速くなる可能性があります。エラーや異常、不安定な動作が発生した場合は、このオプションを無効にしてください"
 
-#: app/setting_interface.py:3552
+#: app/setting_interface.py:3566
 msgid "脚本或可执行文件 (*.exe *.bat *.cmd *.ps1)"
 msgstr "スクリプトまたは実行ファイル (*.exe *.bat *.cmd *.ps1)"
 
@@ -3470,7 +3470,7 @@ msgstr "ユーザー ID"
 msgid "用户 ID，例如 @user:matrix.org"
 msgstr "ユーザー ID。例：@user:matrix.org"
 
-#: app/card/docker_control_card.py:84
+#: app/card/docker_control_card.py:88
 msgid "访问令牌"
 msgstr "アクセストークン"
 
@@ -3662,7 +3662,7 @@ msgstr "受信者"
 msgid "可选参数，收件人邮箱，默认使用 user"
 msgstr "任意項目：受信者のメールアドレス。既定では user を使用します"
 
-#: app/card/docker_control_card.py:80
+#: app/card/docker_control_card.py:84
 msgid "端口"
 msgstr "ポート"
 
@@ -4377,7 +4377,7 @@ msgstr "昇格ポイント上限"
 msgid "快捷配置"
 msgstr "クイック設定"
 
-#: app/setting_interface.py:3664
+#: app/setting_interface.py:3678
 msgid "已应用快捷配置"
 msgstr "クイック設定を適用しました"
 
@@ -5022,21 +5022,21 @@ msgstr "回数をリセット"
 msgid "差分宇宙已完成次数"
 msgstr "差分宇宙の完了回数"
 
-#: app/setting_interface.py:3247
+#: app/setting_interface.py:3261
 msgid "今日已完成 {count} 次"
 msgid_plural "今日已完成 {count} 次|plural"
 msgstr[0] "本日の完了回数: {count} 回"
 
-#: app/setting_interface.py:3248
+#: app/setting_interface.py:3262
 msgid "本周已完成 {count} 次"
 msgid_plural "本周已完成 {count} 次|plural"
 msgstr[0] "今週の完了回数: {count} 回"
 
-#: app/setting_interface.py:3175
+#: app/setting_interface.py:3189
 msgid "启用前请确认用途"
 msgstr "有効化前に用途を確認してください"
 
-#: app/setting_interface.py:3176
+#: app/setting_interface.py:3190
 msgid ""
 "此选项及其子选项用于配置反复刷取遗器经验和灵之珠泪，直到达到每周上限。\n"
 "默认运行次数为每周 34 次。\n"
@@ -5277,11 +5277,11 @@ msgstr "開発者が使用状況を把握し、プログラムを改善するの
 msgid "查看说明"
 msgstr "説明を見る"
 
-#: app/setting_interface.py:3253
+#: app/setting_interface.py:3267
 msgid "匿名使用数据收集说明"
 msgstr "匿名使用データ収集について"
 
-#: app/setting_interface.py:3254
+#: app/setting_interface.py:3268
 msgid ""
 "我们只收集用于改进稳定性、兼容性和功能体验的匿名统计信息，不用于识别你的真实身份，也不会用于广告、画像或与第三方共享。\n"
 "\n"
@@ -5299,7 +5299,7 @@ msgstr ""
 "\n"
 "これらのデータは、機能利用状況の分析、互換性問題の発見、バージョン安定性の評価、共通障害の調査にのみ使用されます。"
 
-#: app/setting_interface.py:3321
+#: app/setting_interface.py:3335
 msgid "该参数用于配置该通知方式的请求字段"
 msgstr "このパラメーターは、この通知方式のリクエストフィールドを設定するために使用します"
 
@@ -5307,7 +5307,7 @@ msgstr "このパラメーターは、この通知方式のリクエストフィ
 msgid "教程"
 msgstr "チュートリアル"
 
-#: app/setting_interface.py:3508
+#: app/setting_interface.py:3522
 msgid "{name} 配置教程"
 msgstr "{name} 設定チュートリアル"
 
@@ -5938,7 +5938,7 @@ msgstr "特殊アイテムのみ入手"
 msgid "一键切换地图版本，并把三项特殊物品领取都设为「启用」"
 msgstr "マップのバージョンを一括で切り替え、特殊アイテムの受け取り3項目をすべて「有効」にします"
 
-#: app/setting_interface.py:3702
+#: app/setting_interface.py:3716
 msgid "当前为“{name}”模式"
 msgstr "現在は「{name}」モードです"
 
@@ -6044,62 +6044,62 @@ msgstr "グループチャット group_openid"
 msgid "可选参数，群聊消息的接收群 group_openid"
 msgstr "任意。グループチャットメッセージの受信グループ group_openid"
 
-#: app/setting_interface.py:3360
+#: app/setting_interface.py:3374
 msgid "绑定单聊"
 msgstr "個人チャットを紐付け"
 
-#: app/setting_interface.py:3360
+#: app/setting_interface.py:3374
 msgid "绑定群聊"
 msgstr "グループチャットを紐付け"
 
-#: app/setting_interface.py:3362
+#: app/setting_interface.py:3376
 msgid "自动绑定收件标识"
 msgstr "受信 ID の自動紐付け"
 
-#: app/setting_interface.py:3371
+#: app/setting_interface.py:3385
 msgid "正在绑定中"
 msgstr "紐付け処理中"
 
-#: app/setting_interface.py:3372
+#: app/setting_interface.py:3386
 msgid "请等待当前绑定完成后再试"
 msgstr "現在の紐付けが完了するまでお待ちください"
 
-#: app/setting_interface.py:3385
+#: app/setting_interface.py:3399
 msgid "无法绑定"
 msgstr "紐付けできません"
 
-#: app/setting_interface.py:3386
+#: app/setting_interface.py:3400
 msgid "请先填写机器人 AppID 与 AppSecret"
 msgstr "先にボットの AppID と AppSecret を入力してください"
 
-#: app/setting_interface.py:3399
+#: app/setting_interface.py:3413
 msgid "点击「开始监听」后，请在 {seconds} 秒内用 QQ 私聊机器人并发送验证码 {code}"
 msgstr ""
 "「監視を開始」をクリック後、{seconds} 秒以内に QQ でボットへ個人メッセージを送り、認証コード {code} を送信してください"
 
-#: app/setting_interface.py:3401
+#: app/setting_interface.py:3415
 msgid "点击「开始监听」后，请在 {seconds} 秒内在群聊中 @ 机器人并发送验证码 {code}，或将机器人拉进目标群"
 msgstr ""
 "「監視を開始」をクリック後、{seconds} 秒以内にグループチャットでボットに @ を付けて認証コード {code} "
 "を送信するか、ボットを対象グループに追加してください"
 
-#: app/setting_interface.py:3405
+#: app/setting_interface.py:3419
 msgid "开始监听"
 msgstr "監視を開始"
 
-#: app/setting_interface.py:3437
+#: app/setting_interface.py:3451
 msgid "绑定成功"
 msgstr "紐付けが完了しました"
 
-#: app/setting_interface.py:3437
+#: app/setting_interface.py:3451
 msgid "绑定失败"
 msgstr "紐付けに失敗しました"
 
-#: app/setting_interface.py:3418
+#: app/setting_interface.py:3432
 msgid "监听中，请私聊机器人发送验证码 {code}（{seconds} 秒内）"
 msgstr "監視中…{seconds} 秒以内に QQ でボットへ個人メッセージを送り、認証コード {code} を送信してください"
 
-#: app/setting_interface.py:3420
+#: app/setting_interface.py:3434
 msgid "监听中，请在群聊中 @ 机器人发送验证码 {code}（{seconds} 秒内）"
 msgstr "監視中…{seconds} 秒以内にグループチャットでボットに @ を付けて認証コード {code} を送信してください"
 
@@ -6239,7 +6239,7 @@ msgstr "ミホヨ ランチャー"
 msgid "HoYoPlay"
 msgstr "HoYoPlay"
 
-#: app/setting_interface.py:3562
+#: app/setting_interface.py:3576
 msgid "选择启动器路径"
 msgstr "ランチャーのパスを選択"
 
@@ -6356,7 +6356,7 @@ msgstr ""
 "まず {skill_file} を読み、その説明に従って操作を手伝ってください。\n"
 "Skill（スキル）に対応している場合は、フォルダー {skill_dir} をユーザー用のスキルディレクトリ（例：~/.agents/skills/ または ~/.claude/skills/）にコピーしてください。次回からこの説明を渡す必要がなくなります。"
 
-#: app/setting_interface.py:3582
+#: app/setting_interface.py:3596
 msgid "粘贴给你的 AI 助手即可"
 msgstr "AI アシスタントに貼り付けてください"
 
@@ -6392,11 +6392,11 @@ msgstr "マウス操作の終了を待機中です。タスクは自動的に再
 msgid "滚轮操作需临时切换游戏到前台"
 msgstr "スクロールのためゲームを一時的に前面にします"
 
-#: app/setting_interface.py:3208
+#: app/setting_interface.py:3222
 msgid "启用后台模式前请确认"
 msgstr "バックグラウンドモードを有効にする前に確認してください"
 
-#: app/setting_interface.py:3217
+#: app/setting_interface.py:3231
 msgid "我已了解，启用后台模式"
 msgstr "理解したうえでバックグラウンドモードを有効にする"
 
@@ -6550,7 +6550,7 @@ msgstr ""
 msgid "后台操作遇到鼠标干扰时会等待并重试；下次启动任务生效。"
 msgstr "バックグラウンド操作中にマウス操作が競合した場合は待機して再試行します。次回のタスク開始時に適用されます。"
 
-#: app/setting_interface.py:3209
+#: app/setting_interface.py:3223
 msgid ""
 "后台模式下，任务运行时你可以继续使用电脑，但仍有以下限制：\n"
 "\n"
@@ -6614,11 +6614,11 @@ msgstr "タスク実行中に画質を一時的に下げる"
 msgid "默认关闭，仅调整助手启动的 Windows 本地游戏；恢复的画质在重启游戏后生效"
 msgstr "初期設定ではオフです。アシスタントが起動する Windows のローカルゲームのみ対象です。画質の復元はゲーム再起動後に反映されます"
 
-#: app/setting_interface.py:3192
+#: app/setting_interface.py:3206
 msgid "启用临时降低画质前请确认"
 msgstr "一時的な画質低下を有効にする前にご確認ください"
 
-#: app/setting_interface.py:3193
+#: app/setting_interface.py:3207
 msgid ""
 "此功能仅在执行任务时，由助手启动 Windows 本地游戏才生效；云游戏和已经运行的游戏不会调整。\n"
 "\n"
@@ -7502,7 +7502,7 @@ msgstr "Android デバイス"
 msgid "请先停止任务，再切换设备后端"
 msgstr "タスクを停止してからデバイスバックエンドを切り替えてください"
 
-#: app/setting_interface.py:3134
+#: app/setting_interface.py:3148
 msgid "环境检查会占用设备，请等任务结束后再检查"
 msgstr "環境チェックはデバイスを占有します。タスクの終了後に実行してください"
 
@@ -7847,7 +7847,7 @@ msgstr "オート戦闘の検出とローカルゲームの解像度・画質調
 msgid "战斗时检测并补开自动战斗和二倍速"
 msgstr "戦闘中にオート戦闘と2倍速を確認し、必要に応じてオンにします。"
 
-#: app/setting_interface.py:3119
+#: app/setting_interface.py:3133
 msgid "请先停止任务，再切换游戏运行位置"
 msgstr "タスクを停止してからゲームの実行先を切り替えてください。"
 
@@ -8265,7 +8265,7 @@ msgstr ""
 msgid "上一个请求还没结束，稍后再试"
 msgstr ""
 
-#: app/card/docker_control_card.py:104
+#: app/card/docker_control_card.py:122
 msgid "连接失败"
 msgstr ""
 
@@ -8359,52 +8359,51 @@ msgstr ""
 msgid "控制 Docker 里运行的小助手：查看调度器状态、立即运行完整运行、停止当前任务、修改常用开关。需要容器开启控制接口并配置令牌。"
 msgstr ""
 
-#: app/card/docker_control_card.py:50
+#: app/card/docker_control_card.py:51
 msgid "请填写地址"
 msgstr ""
 
-#: app/card/docker_control_card.py:52
+#: app/card/docker_control_card.py:53
 msgid "请填写访问令牌"
 msgstr ""
 
-#: app/card/docker_control_card.py:65
+#: app/card/docker_control_card.py:66
 msgid "连接 Docker 小助手"
 msgstr ""
 
-#: app/card/docker_control_card.py:66
+#: app/card/docker_control_card.py:67
 msgid ""
 "连接后会关闭本地小助手，打开一个只显示并操作 Docker 的新窗口；新窗口的标题栏会标注 Docker，配置与任务都以 Docker 上的为准。"
 msgstr ""
 
-#: app/card/docker_control_card.py:77
+#: app/card/docker_control_card.py:81
 msgid "Docker 主机地址，例如 192.0.2.10"
 msgstr ""
 
-#: app/card/docker_control_card.py:93
+#: app/card/docker_control_card.py:97
 msgid "地址与令牌需要与 Docker 上的控制接口一致"
 msgstr ""
 
-#: app/card/docker_control_card.py:104
 msgid "请补全连接信息"
 msgstr ""
 
-#: app/card/docker_control_card.py:114
+#: app/card/docker_control_card.py:139
 msgid "配置并连接"
 msgstr ""
 
-#: app/card/docker_control_card.py:115
+#: app/card/docker_control_card.py:140
 msgid "切回本地小助手"
 msgstr ""
 
-#: app/card/docker_control_card.py:127
+#: app/card/docker_control_card.py:152
 msgid "已连接 Docker：{host}:{port}；标题栏标注 Docker 的窗口只操作远程"
 msgstr ""
 
-#: app/card/docker_control_card.py:129
+#: app/card/docker_control_card.py:154
 msgid "连接其他 Docker"
 msgstr ""
 
-#: app/card/docker_control_card.py:132
+#: app/card/docker_control_card.py:157
 msgid "填写 Docker 地址与令牌，连接后另开一个只操作远程的小助手窗口"
 msgstr ""
 
