@@ -170,7 +170,7 @@ def test_card_does_not_switch_when_probe_fails(qtbot, local_mode, monkeypatch):
     monkeypatch.setattr(module, "DockerControlClient",
                         lambda *a, **k: FakeClient(error=DockerControlError("地址不可达")))
     monkeypatch.setattr(module, "_launch_new_window", lambda *a, **k: launched.append(a))
-    monkeypatch.setattr(module.QApplication, "quit", lambda *a, **k: launched.append("quit"))
+    monkeypatch.setattr(module, "_quit_for_mode_switch", lambda *a, **k: launched.append("quit"))
 
     card = DockerControlCard(FluentIcon.CLOUD, "Docker 控制")
     qtbot.addWidget(card)
@@ -188,3 +188,41 @@ def test_card_does_not_switch_when_probe_fails(qtbot, local_mode, monkeypatch):
     monkeypatch.setattr(module, "DockerConnectDialog", _Dialog)
     card._on_connect_clicked()
     assert launched == [], "探活失败不得新开窗口或退出本地界面"
+
+
+def test_mode_switch_quit_skips_close_prompt(qtbot, local_mode, monkeypatch):
+    """切回本地必须直接关闭窗口，不能弹出「最小化还是关闭」。"""
+    from app.main_window import MainWindow
+
+    calls = []
+    window = MainWindow.__new__(MainWindow)
+    window._suppress_close_prompt = False
+    monkeypatch.setattr(MainWindow, "_do_quit", lambda self, e=None: calls.append(("quit", self._suppress_close_prompt)))
+
+    class _Event:
+        def ignore(self):
+            calls.append(("ignore", None))
+
+        def accept(self):
+            calls.append(("accept", None))
+
+    window.quitForModeSwitch()
+    assert calls and calls[0][0] == "quit"
+    assert calls[0][1] is True, "切换模式时必须在跳过询问的状态下退出"
+
+
+def _fake_window(suppress):
+    return type("W", (), {
+        "quitForModeSwitch": lambda self: None,
+        "_suppress_close_prompt": suppress,
+    })()
+
+
+def test_back_to_local_uses_silent_quit(qtbot, local_mode, monkeypatch):
+    launched = []
+    monkeypatch.setattr(module, "_launch_new_window", lambda *a, **k: launched.append("launch"))
+    monkeypatch.setattr(module, "_quit_for_mode_switch", lambda *a, **k: launched.append("quit"))
+    card = DockerControlCard(FluentIcon.CLOUD, "Docker 控制")
+    qtbot.addWidget(card)
+    card._on_back_to_local_clicked()
+    assert launched == ["launch", "quit"]

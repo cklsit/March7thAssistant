@@ -59,6 +59,16 @@ def check_target(host, port, token, client_factory=None):
     return None
 
 
+def _quit_for_mode_switch(widget):
+    """切换本机/Docker 模式后关闭当前窗口：跳过「最小化还是关闭」询问，也不最小化到托盘。"""
+    window = widget.window() if widget is not None else None
+    quit_for_switch = getattr(window, "quitForModeSwitch", None)
+    if callable(quit_for_switch):
+        quit_for_switch()
+        return
+    QApplication.quit()
+
+
 class DockerConnectDialog(MessageBox):
     """填写 Docker 地址并探活；确认后由调用方负责重启。"""
 
@@ -171,8 +181,8 @@ class DockerControlCard(SettingCard):
             return
         docker_mode.save_target(host, port, token)
         _launch_new_window(host, port, token)
-        QApplication.quit()
+        _quit_for_mode_switch(self)
 
     def _on_back_to_local_clicked(self):
         _launch_new_window()
-        QApplication.quit()
+        _quit_for_mode_switch(self)

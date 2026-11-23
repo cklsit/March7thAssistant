@@ -256,6 +256,7 @@ class MainWindow(MSFluentWindow):
         self._evernight = EvernightEasterEgg()
         self._evernight_active = False
         self._evey_animation = None
+        self._suppress_close_prompt = False
         self._docker_sync_timer = None
         self._docker_sync_thread = None
         self._docker_sync_error = None
@@ -405,6 +406,20 @@ class MainWindow(MSFluentWindow):
             tr('这是运行在桌面分身中的小助手。分身内固定使用前台模式，不调整画质和分辨率，也不执行任务完成后的关机等操作'))
 
     # ── Docker 模式：定期把远程配置拉回镜像 ─────────────────────
+    def _stopDockerSync(self):
+        """退出前停掉配置同步：定时器停走，线程等待结束后再销毁，避免 QThread 被强制回收。"""
+        timer = getattr(self, "_docker_sync_timer", None)
+        if timer is not None:
+            try:
+                timer.stop()
+            except Exception:
+                pass
+        thread = getattr(self, "_docker_sync_thread", None)
+        if thread is not None and thread.isRunning():
+            # 一轮同步最多几秒，等它自己结束
+            thread.wait(5000)
+        self._docker_sync_thread = None
+
     def _startDockerConfigSync(self):
         if not docker_mode.active():
             return
@@ -1073,6 +1088,11 @@ class MainWindow(MSFluentWindow):
         """退出应用程序"""
         self._do_quit()
 
+    def quitForModeSwitch(self):
+        """切换本机/Docker 模式时退出当前窗口：跳过关闭确认，也不再落到托盘。"""
+        self._suppress_close_prompt = True
+        self._do_quit()
+
     def _saveWindowState(self):
         """保存窗口尺寸、位置和最大化状态到配置文件（批量一次落盘）"""
         try:
@@ -1197,8 +1217,9 @@ class MainWindow(MSFluentWindow):
         except Exception:
             pass
 
-        # 停止运行任务和主题监听
+        # 停止运行任务、后台同步与主题监听
         self._stopRunningTask()
+        self._stopDockerSync()
         self._stopThemeListener()
 
         # 可选地清理日志界面资源
@@ -1220,6 +1241,11 @@ class MainWindow(MSFluentWindow):
     def closeEvent(self, e):
         """关闭窗口时根据配置执行对应操作"""
         from .card.messagebox_custom import MessageBoxCloseWindow
+
+        # 切换本机/Docker 模式时由程序自己关闭窗口，不弹「最小化还是关闭」
+        if self._suppress_close_prompt:
+            self._do_quit(e)
+            return
 
         close_action = cfg.get_value('close_window_action', 'ask')
 
