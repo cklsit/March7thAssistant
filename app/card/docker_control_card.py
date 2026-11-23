@@ -71,7 +71,10 @@ class DockerConnectDialog(MessageBox):
         self.buttonGroup.setMinimumWidth(480)
 
         saved = docker_mode.load_target()
+        # 移除后必须清空并隐藏，否则旧文案会留在原位和新控件叠在一起
         self.textLayout.removeWidget(self.contentLabel)
+        self.contentLabel.clear()
+        self.contentLabel.hide()
 
         self.hostEdit = LineEdit(self)
         self.hostEdit.setPlaceholderText(tr("Docker 主机地址，例如 192.0.2.10"))
